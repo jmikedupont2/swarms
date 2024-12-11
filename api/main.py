@@ -22,7 +22,7 @@ import traceback
 from swarms import Agent
 from dotenv import load_dotenv
 
-print ("starting")
+print("starting")
 # Load environment variables
 load_dotenv()
 
@@ -31,7 +31,7 @@ logger.add(sys.stdout,
            level="TRACE",
            backtrace=True,
            diagnose=True,
-               format="{time} {level} {message}",
+           format="{time} {level} {message}",
            )
 # Configure Loguru
 logger.add(
@@ -627,21 +627,20 @@ def create_app() -> FastAPI:
     return api.app
 
 
-#if __name__ == "__main__":
+# if __name__ == "__main__":
 if __name__ == '__main__':
-    #freeze_support()
+    # freeze_support()
     #print("yes in main")
     # Configure uvicorn logging
     logger.info("API Starting")
-    
+
     uvicorn.run(
         "main:create_app",
         host="0.0.0.0",
         port=8000,
-     #   reload=True,
-     #   workers=4,
+        #   reload=True,
+        #   workers=4,
     )
 else:
     #print("not in main")
     pass
-    
