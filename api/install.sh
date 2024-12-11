@@ -1,4 +1,5 @@
 #!/bin/bash
+# review and improve
 set -e # stop  on any error
 set -x
 export ROOT="/mnt/data1/swarms"
@@ -41,7 +42,7 @@ chmod +x "${ROOT}/var/swarms/agent_workspace/boot.sh"
 chown -R swarms:swarms "${ROOT}/var/swarms/" "${ROOT}/home/swarms" "${ROOT}/opt/swarms"
 
 # user install but do not start
-su -c "bash -e -x /var/swarms/agent_workspace/boot.sh" swarms
+su -c "bash -e -x ${ROOT}/var/swarms/agent_workspace/boot.sh" swarms
 
 # now we setup the service
 cp "${WORKSOURCE}/nginx/site.conf" /etc/nginx/sites-enabled/default
@@ -49,7 +50,7 @@ cp "${WORKSOURCE}/systemd/uvicorn.service" /etc/systemd/system/swarms-uvicorn.se
 
 # we create a second installation of unicorn so agents cannot mess it up.
 mkdir -p "${ROOT}/var/run/uvicorn/env/"
-if [ ! -f "${ROOT}//var/run/uvicorn/env/" ];
+if [ ! -f "${ROOT}/var/run/uvicorn/env/" ];
 then
    virtualenv "${ROOT}/var/run/uvicorn/env/"
 fi
