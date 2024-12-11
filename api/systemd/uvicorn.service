@@ -8,16 +8,16 @@ Type=simple
 User=swarms
 Group=swarms
 DynamicUser=true
-WorkingDirectory=/var/run/swarms/
+WorkingDirectory=ROOT/var/run/swarms/
 PrivateTmp=true
-EnvironmentFile=/var/run/swarms/secrets/env
-ExecStart=/var/run/uvicorn/env/bin/uvicorn \
+EnvironmentFile=ROOT/var/run/swarms/secrets/env
+ExecStart=ROOT/var/run/uvicorn/env/bin/uvicorn \
         --proxy-headers \
         --forwarded-allow-ips='*' \
         --workers=4 \
         --port=54748 \
         --no-access-log \
-	--uds /run/uvicorn/uvicorn-swarms-api.sock \
+	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
         _.asgi:application
 ExecReload=/bin/kill -HUP ${MAINPID}
 RestartSec=1
