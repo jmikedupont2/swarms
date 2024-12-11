@@ -25,6 +25,13 @@ print ("starting")
 # Load environment variables
 load_dotenv()
 
+logger.add(sys.stdout,
+           colorize=True,
+           level="TRACE",
+           backtrace=True,
+           diagnose=True,
+               format="{time} {level} {message}",
+           )
 # Configure Loguru
 logger.add(
     "logs/api.log",
