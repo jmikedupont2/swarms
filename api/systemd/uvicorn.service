@@ -8,9 +8,13 @@ Type=simple
 User=swarms
 Group=swarms
 DynamicUser=true
-WorkingDirectory=ROOT/var/run/swarms/
+WorkingDirectory=ROOT/opt/swarms/api/
 PrivateTmp=true
 EnvironmentFile=ROOT/var/run/swarms/secrets/env
+
+# for debugging use
+#ExecStart=/usr/bin/unbuffer ROOT/var/run/uvicorn/env/bin/uvicorn \
+
 ExecStart=ROOT/var/run/uvicorn/env/bin/uvicorn \
         --proxy-headers \
         --forwarded-allow-ips='*' \
