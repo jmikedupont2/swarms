@@ -22,7 +22,7 @@ import traceback
 from swarms import Agent
 from dotenv import load_dotenv
 
-print("starting")
+#print("starting")
 # Load environment variables
 load_dotenv()
 
@@ -638,8 +638,9 @@ if __name__ == '__main__':
         "main:create_app",
         host="0.0.0.0",
         port=8000,
-        #   reload=True,
-        #   workers=4,
+        log_level="TRACE",
+        workers=1,
+        # reload=True,
     )
 else:
     #print("not in main")
