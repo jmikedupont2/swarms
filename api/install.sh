@@ -18,8 +18,10 @@ then
 fi
 
 pushd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
+git remote add local /time/2024/05/swarms/ || git remote set-url local /time/2024/05/swarms/ 
+git fetch local 
 git checkout feature/ec2 # switch branches
-git pull # update 
+git pull local feature/ec2
 popd || exit 2
   
 if [ ! -d "${ROOT}/opt/swarms-memory/" ];
@@ -39,7 +41,7 @@ chmod +x "${ROOT}/var/swarms/agent_workspace/boot.sh"
 chown -R swarms:swarms "${ROOT}/var/swarms/" "${ROOT}/home/swarms" "${ROOT}/opt/swarms"
 
 # user install but do not start
-su -c "bash -x /var/swarms/agent_workspace/boot.sh" swarms
+su -c "bash -e -x /var/swarms/agent_workspace/boot.sh" swarms
 
 # now we setup the service
 cp "${WORKSOURCE}/nginx/site.conf" /etc/nginx/sites-enabled/default
