@@ -19,9 +19,9 @@ ls "${ROOT}/var/swarms/agent_workspace/"
 pip install fastapi   uvicorn  termcolor
 # these are tried to be installed by the app on boot
 pip install sniffio pydantic-core httpcore exceptiongroup annotated-types pydantic anyio httpx ollama
-pip install -u -e "${ROOT}/opt/swarms/"
+pip install  -e "${ROOT}/opt/swarms/"
 cd "${ROOT}/var/swarms/"
-pip install -u -e "${ROOT}/opt/swarms-memory"
+pip install  -e "${ROOT}/opt/swarms-memory"
 pip install "fastapi[standard]"
 pip install "loguru"
 pip install  pydantic==2.8.2
