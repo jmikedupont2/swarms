@@ -30,7 +30,7 @@ logger.add(
     "logs/api_{time}.log",
     rotation="500 MB",
     retention="10 days",
-    level="INFO",
+    level="TRACE",
     format="{time} {level} {message}",
     backtrace=True,
     diagnose=True,
