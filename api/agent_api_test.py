@@ -1,6 +1,8 @@
+import os
+import time
+
 import requests
 from loguru import logger
-import time
 
 # Configure loguru
 logger.add(
@@ -10,7 +12,7 @@ logger.add(
     format="{time} {level} {message}",
 )
 
-BASE_URL = "http://localhost:8000/v1"
+BASE_URL = os.getenv("SWARMS_URL","http://localhost:8000/v1")
 
 
 def test_create_agent():
