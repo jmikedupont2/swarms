@@ -27,7 +27,7 @@ load_dotenv()
 
 # Configure Loguru
 logger.add(
-    "logs/api_{time}.log",
+    "logs/api.log",
     rotation="500 MB",
     retention="10 days",
     level="TRACE",
@@ -614,7 +614,7 @@ class SwarmsAPI:
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    print("create app")
+    #print("create app")
     api = SwarmsAPI()
     return api.app
 
@@ -622,7 +622,7 @@ def create_app() -> FastAPI:
 #if __name__ == "__main__":
 if __name__ == '__main__':
     #freeze_support()
-    print("yes in main")
+    #print("yes in main")
     # Configure uvicorn logging
     logger.info("API Starting")
     
@@ -634,5 +634,6 @@ if __name__ == '__main__':
      #   workers=4,
     )
 else:
-    print("not in main")
+    #print("not in main")
+    pass
     
