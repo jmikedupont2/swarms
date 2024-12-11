@@ -41,6 +41,11 @@ if [ ! -f "${ROOT}/opt/swarms/install/setup.txt" ]; then
     mkdir -p "${ROOT}/var/swarms/agent_workspace/"
     mkdir -p "${ROOT}/home/swarms"
     chown -R swarms:swarms "${ROOT}/var/swarms/agent_workspace" "${ROOT}/home/swarms"    
+
+    # now for my local setup I aslo need to do this or we have to change the systemctl home var
+    #mkdir -p "/home/swarms"
+    #chown -R swarms:swarms "/home/swarms"    
+
     # copy the run file from git
     cp "${WORKSOURCE}/boot.sh" "${ROOT}/var/swarms/agent_workspace/boot.sh"
     mkdir -p "${ROOT}/var/swarms/logs"
@@ -74,6 +79,13 @@ if [ ! -f "${ROOT}/opt/swarms/install/config.txt" ]; then
     # create the secrets
     mkdir -p "${ROOT}/var/run/swarms/secrets/"
     echo "OPENAI_KEY=${OPENAI_KEY}" > "${ROOT}/var/run/swarms/secrets/env"
+
+    # cache 
+    mkdir -p "${ROOT}/home/swarms/.cache/huggingface/hub"
+    
+    ## append new homedir
+    echo "TRANSFORMERS_CACHE=${ROOT}/home/swarms/.cache/huggingface/hub" >> "${ROOT}/var/run/swarms/secrets/env"
+    echo "HOME=${ROOT}/home/swarms" >> "${ROOT}/var/run/swarms/secrets/env"
     #EnvironmentFile=ROOT/var/run/swarms/secrets/env
     #ExecStart=ROOT/var/run/uvicorn/env/bin/uvicorn \
 	#	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
