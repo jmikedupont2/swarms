@@ -1,54 +1,62 @@
-export WORKSOURCE=/opt/swarms/api
-sudo apt update
-sudo apt install -y git virtualenv
-rm -rf ./src/swarms # oops
-useradd swarms
+#!/bin/bash
+set -e # stop  on any error
+set -x
+export ROOT="/mnt/data1/swarms"
+export WORKSOURCE="${ROOT}/opt/swarms/api"
+if [ 1 == 0 ]; then
+    sudo apt update
+    sudo apt install --allow-change-held-packages -y git virtualenv
+fi
+#rm -rf ./src/swarms # oops
+adduser swarms --home "${ROOT}/home/swarms" || echo ignore
+git config --global --add safe.directory "${ROOT}/opt/swarms"
+git config --global --add safe.directory "${ROOT}/opt/swarms-memory"
 # we should have done this
-if [ ! -d /opt/swarms/ ];
+if [ ! -d "${ROOT}/opt/swarms/" ];
 then
-    git clone https://github.com/jmikedupont2/swarms /opt/swarms/
+    git clone https://github.com/jmikedupont2/swarms "${ROOT}/opt/swarms/"
 fi
 
-pushd /opt/swarms/
+pushd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
 git checkout feature/ec2 # switch branches
 git pull # update 
-popd
+popd || exit 2
   
-if [ ! -d /opt/swarms-memory/ ];
+if [ ! -d "${ROOT}/opt/swarms-memory/" ];
 then
-    git clone https://github.com/The-Swarm-Corporation/swarms-memory /opt/swarms-memory
+    git clone https://github.com/The-Swarm-Corporation/swarms-memory "${ROOT}/opt/swarms-memory"
 fi
 
 # where the swarms will run
-mkdir -p /var/swarms/agent_workspace/
-mkdir -p /home/swarms
-chown -R swarms:swarms /var/swarms/agent_workspace /home/swarms
+mkdir -p "${ROOT}/var/swarms/agent_workspace/"
+mkdir -p "${ROOT}/home/swarms"
+chown -R swarms:swarms "${ROOT}/var/swarms/agent_workspace" "${ROOT}/home/swarms"
 
 # copy the run file from git
-cp "${WORKSOURCE}/run.sh" /var/swarms/agent_workspace/run.sh
-mkdir -p /var/swarms/logs
-chmod +x /var/swarms/agent_workspace/run.sh
-chown -R swarms:swarms /var/swarms/ /home/swarms /opt/swarms
+cp "${WORKSOURCE}/boot.sh" "${ROOT}/var/swarms/agent_workspace/boot.sh"
+mkdir -p "${ROOT}/var/swarms/logs"
+chmod +x "${ROOT}/var/swarms/agent_workspace/boot.sh"
+chown -R swarms:swarms "${ROOT}/var/swarms/" "${ROOT}/home/swarms" "${ROOT}/opt/swarms"
 
 # user install but do not start
-su -c "bash -x /var/swarms/agent_workspace/run.sh" swarms
+su -c "bash -x /var/swarms/agent_workspace/boot.sh" swarms
 
 # now we setup the service
 cp "${WORKSOURCE}/nginx/site.conf" /etc/nginx/sites-enabled/default
-cp "${WORKSOURCE}/systemd/gunicorn.service" /etc/systemd/system/
+cp "${WORKSOURCE}/systemd/uvicorn.service" /etc/systemd/system/swarms-uvicorn.service
 
 # we create a second installation of unicorn so agents cannot mess it up.
-mkdir -p /var/run/uvicorn/env/
-if [ ! -f /var/run/uvicorn/env/ ];
+mkdir -p "${ROOT}/var/run/uvicorn/env/"
+if [ ! -f "${ROOT}//var/run/uvicorn/env/" ];
 then
-   virtualenv /var/run/uvicorn/env/
+   virtualenv "${ROOT}/var/run/uvicorn/env/"
 fi
-. /var/run/uvicorn/env/bin/activate
+. "${ROOT}/var/run/uvicorn/env/bin/activate"
 pip install  uvicorn
 ###
 
 systemctl daemon-reload
-systemctl start gunicorn
-systemctl enable gunicorn
+systemctl start swarms-uvicorn
+systemctl enable swarms-uvicorn
 service nginx restart
 
