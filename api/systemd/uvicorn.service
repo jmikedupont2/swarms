@@ -1,4 +1,4 @@
-# from https://github.com/encode/uvicorn/issues/678
+# derived from https://github.com/encode/uvicorn/issues/678
 [Unit]
 Description=swarms
 After=network.target
@@ -13,14 +13,13 @@ PrivateTmp=true
 EnvironmentFile=ROOT/var/run/swarms/secrets/env
 
 # for debugging use
-#ExecStart=/usr/bin/unbuffer ROOT/var/run/uvicorn/env/bin/uvicorn \
+#ExecStart=/usr/bin/unbuffer ROOT/var/run/uvicorn/env/bin/uvicorn
 
 ExecStart=ROOT/var/run/uvicorn/env/bin/uvicorn \
         --proxy-headers \
         --forwarded-allow-ips='*' \
         --workers=4 \
         --port=54748 \
-        --no-access-log \
 	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
         main:create_app
 ExecReload=/bin/kill -HUP ${MAINPID}

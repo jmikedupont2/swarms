@@ -111,9 +111,9 @@ sed -e "s!ROOT!${ROOT}!g" > /etc/nginx/sites-enabled/default < "${WORKSOURCE}/ng
 #    access_log ROOT/var/log/nginx/swarms/access.log;
 #    error_log ROOT/var/log/nginx/swarms/error.log;
 #echo cat "${WORKSOURCE}/systemd/uvicorn.service" \| sed -e "s!ROOT!/${ROOT}/!g"
-cat "${WORKSOURCE}/systemd/uvicorn.service"
+#cat "${WORKSOURCE}/systemd/uvicorn.service"
 sed -e "s!ROOT!${ROOT}!g" > /etc/systemd/system/swarms-uvicorn.service < "${WORKSOURCE}/systemd/uvicorn.service"
-cat /etc/systemd/system/swarms-uvicorn.service
+grep . -h -n /etc/systemd/system/swarms-uvicorn.service
 			    
 # if [ -f ${ROOT}/etc/systemd/system/swarms-uvicorn.service ];
 # then
