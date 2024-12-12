@@ -27,7 +27,9 @@ def test_create_agent():
         "tags": ["test"],
     }
 
+    logger.debug(f"post {BASE_URL}/agent")
     response = requests.post(f"{BASE_URL}/agent", json=payload)
+
     logger.debug(f"Create response: {response.json()}")
 
     if response.status_code == 200:

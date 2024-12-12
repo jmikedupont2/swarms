@@ -213,7 +213,8 @@ class AgentStore:
         self.agent_metadata: Dict[UUID, Dict[str, Any]] = {}
         self.executor = ThreadPoolExecutor(max_workers=4)
         self._ensure_directories()
-
+        logger.info(f"Created agent store: {self}")
+            
     def _ensure_directories(self):
         """Ensure required directories exist."""
         #Path("logs").mkdir(exist_ok=True)
@@ -259,6 +260,8 @@ class AgentStore:
             }
 
             logger.info(f"Created agent with ID: {agent_id}")
+            logger.debug(f"Created agents:{self.agents.keys()}")
+            logger.info(f"agent store: {self}")
             return agent_id
 
         except Exception as e:
@@ -270,6 +273,9 @@ class AgentStore:
 
     async def get_agent(self, agent_id: UUID) -> Agent:
         """Retrieve an agent by ID."""
+        logger.info(f"agent store: {self}")
+        logger.info(f"Agent found: {agent_id}")
+        logger.debug(f"current agents:{self.agents.keys()}")
         agent = self.agents.get(agent_id)
         if not agent:
             logger.error(f"Agent not found: {agent_id}")
