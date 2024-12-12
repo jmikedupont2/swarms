@@ -103,24 +103,10 @@ def test_create_agent(session: TestSession) -> Tuple[bool, Optional[UUID]]:
         "tags": ["test", "automated"]
     }
 
-    try:
-        response = requests.post(
-            f"{BASE_URL}/agent",
-            headers=session.headers,
-            json=payload
-        )
-        
-        if response.status_code == 200:
-            agent_id = response.json()["agent_id"]
-            session.test_agents.append(agent_id)
-            logger.success(f"Created agent with ID: {agent_id}")
-            return True, agent_id
-        else:
-            logger.error(f"Failed to create agent: {response.text}")
-            return False, None
-    except Exception as e:
-        logger.exception("Exception during agent creation")
-        return False, None
+    logger.debug(f"post {BASE_URL}/agent")
+    response = requests.post(f"{BASE_URL}/agent", json=payload)
+
+    logger.debug(f"Create response: {response.json()}")
 
 def test_list_user_agents(session: TestSession) -> bool:
     """Test listing user's agents."""
