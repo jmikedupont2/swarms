@@ -133,6 +133,9 @@ systemctl daemon-reload
 #    systemctl start swarms-uvicorn || systemctl status swarms-uvicorn.service  && journalctl -xeu swarms-uvicorn.service
 systemctl start swarms-uvicorn || journalctl -xeu swarms-uvicorn.service
 # systemctl status swarms-uvicorn.service
-# journalctl -xeu swarms-uvicorn.service
+# journalctl -xeu swarms-uvicorn.serviceo
 systemctl enable swarms-uvicorn || journalctl -xeu swarms-uvicorn.service
 service nginx restart
+
+journalctl -xeu swarms-uvicorn.service || echo oops
+systemctl status swarms-uvicorn.service || echo oops2

@@ -17,7 +17,7 @@ EnvironmentFile=ROOT/var/run/swarms/secrets/env
 
 # this runs and is modifiable by the agent, so this can be destabilized
 # FIXME: containerize the run(chroot jail?)
-ExecStart=ROOT/var/swarms/agent_workspace/.venv/bin/uvicorn \
+ExecStart=/usr/bin/unbuffer ROOT/var/swarms/agent_workspace/.venv/bin/uvicorn \
         --proxy-headers \
         --forwarded-allow-ips='*' \
         --workers=4 \
