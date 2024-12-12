@@ -33,7 +33,7 @@ if [ ! -f "${ROOT}/opt/swarms/install/setup.txt" ]; then
     git stash
     git checkout --force  $BRANCH
     git pull local $BRANCH
-
+    git log -2 --patch
     if [ ! -d "${ROOT}/opt/swarms-memory/" ];
     then
 	git clone https://github.com/The-Swarm-Corporation/swarms-memory "${ROOT}/opt/swarms-memory"
@@ -74,14 +74,9 @@ if [ ! -f "${ROOT}/opt/swarms/install/pull.txt" ]; then
     echo 1 >"${ROOT}/opt/swarms/install/pull.txt"
 fi
 
-
 if [ ! -f "${ROOT}/opt/swarms/install/config.txt" ]; then
     mkdir -p "${ROOT}/var/run/swarms/secrets/"
-    
-    # cache 
     mkdir -p "${ROOT}/home/swarms/.cache/huggingface/hub"
-    
-
     echo "OPENAI_KEY=${OPENAI_KEY}" > "${ROOT}/var/run/swarms/secrets/env"
     ## append new homedir
     echo "TRANSFORMERS_CACHE=${ROOT}/home/swarms/.cache/huggingface/hub" >> "${ROOT}/var/run/swarms/secrets/env"

@@ -24,8 +24,8 @@ cd "${ROOT}/var/swarms/"
 pip install  -e "${ROOT}/opt/swarms-memory"
 pip install "fastapi[standard]"
 pip install "loguru"
+pip install "hunter" # for tracing
 pip install  pydantic==2.8.2
-
 
 # pip freeze
 # launch as systemd
