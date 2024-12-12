@@ -125,9 +125,6 @@ grep . -h -n /etc/systemd/system/swarms-uvicorn.service
 #/run/uvicorn/
 # triage
 chown -R swarms:swarms ${ROOT}/var/run/swarms/
-
-
-make.s
 # Dec 12 10:55:50 mdupont-G470 unbuffer[3921723]: OSError: [Errno 30] Read-only file system: 
 #cat /etc/systemd/system/swarms-uvicorn.service
 
