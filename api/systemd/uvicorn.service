@@ -23,7 +23,7 @@ ExecStart=/usr/bin/unbuffer ROOT/var/swarms/agent_workspace/.venv/bin/uvicorn \
         --workers=1 \
         --port=54747 \
 	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
-        main:create_app | tee /tmp/test123
+        main:create_app
 	
 ExecReload=/bin/kill -HUP ${MAINPID}
 RestartSec=10
