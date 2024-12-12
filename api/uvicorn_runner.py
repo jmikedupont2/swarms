@@ -22,7 +22,8 @@ import sys
 import uvicorn
 from uvicorn.config import LOGGING_CONFIG
 import hunter
-hunter.trace(stdlib=True, action=hunter.CallPrinter)
+hunter.trace(stdlib=False,
+             action=hunter.CallPrinter)
 
 def main():
     #root_path = ''
