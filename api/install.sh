@@ -34,7 +34,7 @@ if [ ! -f "${ROOT}/opt/swarms/install/setup.txt" ]; then
     git stash
     git checkout --force  $BRANCH
     git pull local $BRANCH
-    git log -2 --patch | head
+    git log -2 --patch | head  -1000
     if [ ! -d "${ROOT}/opt/swarms-memory/" ];
     then
 	git clone https://github.com/The-Swarm-Corporation/swarms-memory "${ROOT}/opt/swarms-memory"
