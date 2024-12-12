@@ -27,14 +27,14 @@ if [ ! -f "${ROOT}/opt/swarms/install/setup.txt" ]; then
     then
 	git clone https://github.com/jmikedupont2/swarms "${ROOT}/opt/swarms/"
     fi    
-    pushd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
+    cd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
     git remote add local /time/2024/05/swarms/ || git remote set-url local /time/2024/05/swarms/ 
     git fetch local 
 #    git checkout feature/ec2 # switch branches
 #    git pull local feature/ec2
     git checkout feature/telemetry # switch branches
     git pull local feature/telemetry
-    popd || exit 2    
+
     if [ ! -d "${ROOT}/opt/swarms-memory/" ];
     then
 	git clone https://github.com/The-Swarm-Corporation/swarms-memory "${ROOT}/opt/swarms-memory"
@@ -67,24 +67,22 @@ fi
 ## pull
 
 if [ ! -f "${ROOT}/opt/swarms/install/pull.txt" ]; then
-    pushd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
+    cd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
     git fetch local 
     git checkout feature/ec2 # switch branches
     git pull local feature/ec2
-    popd || exit 2    
     #echo 1 >"${ROOT}/opt/swarms/install/pull.txt"
 fi
 
 
 if [ ! -f "${ROOT}/opt/swarms/install/config.txt" ]; then
-    #WorkingDirectory=ROOT/var/run/swarms/
-    # create the secrets
     mkdir -p "${ROOT}/var/run/swarms/secrets/"
-    echo "OPENAI_KEY=${OPENAI_KEY}" > "${ROOT}/var/run/swarms/secrets/env"
-
+    
     # cache 
     mkdir -p "${ROOT}/home/swarms/.cache/huggingface/hub"
     
+
+    echo "OPENAI_KEY=${OPENAI_KEY}" > "${ROOT}/var/run/swarms/secrets/env"
     ## append new homedir
     echo "TRANSFORMERS_CACHE=${ROOT}/home/swarms/.cache/huggingface/hub" >> "${ROOT}/var/run/swarms/secrets/env"
     echo "HOME=${ROOT}/home/swarms" >> "${ROOT}/var/run/swarms/secrets/env"
@@ -93,39 +91,27 @@ if [ ! -f "${ROOT}/opt/swarms/install/config.txt" ]; then
 	#	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
     echo 1 >"${ROOT}/opt/swarms/install/config.txt"    
 fi
-	
-# if [ ! -f "${ROOT}/opt/swarms/install/uvicorn.txt" ]; then    
-# # we create a second installation of unicorn so agents cannot mess it up.
-#     mkdir -p "${ROOT}/var/run/uvicorn/env/"
-#     if [ ! -f "${ROOT}/var/run/uvicorn/env/" ];
-#     then
-# 	virtualenv "${ROOT}/var/run/uvicorn/env/"
-#     fi
-#     . "${ROOT}/var/run/uvicorn/env/bin/activate"
-#     pip install  uvicorn   
-#     echo 1 >"${ROOT}/opt/swarms/install/uvicorn.txt"
-# fi
 
 if [ ! -f "${ROOT}/opt/swarms/install/nginx.txt" ]; then
     mkdir -p ${ROOT}/var/log/nginx/swarms/
 fi
-# reconfigure
-# now we setup the service and  replace root in the files
 
-#echo  cat "${WORKSOURCE}/nginx/site.conf" \| sed -e "s!ROOT!${ROOT}!g" 
-cat "${WORKSOURCE}/nginx/site.conf"| sed -e "s!ROOT!${ROOT}!g" > /etc/nginx/sites-enabled/default
-#cat /etc/nginx/sites-enabled/default
 
 # create sock
 mkdir -p ${ROOT}/run/uvicorn/
 chown -R swarms:swarms ${ROOT}/run/uvicorn
 
+# reconfigure
+# now we setup the service and  replace root in the files
+#echo  cat "${WORKSOURCE}/nginx/site.conf" \| sed -e "s!ROOT!${ROOT}!g" 
+sed -e "s!ROOT!${ROOT}!g" > /etc/nginx/sites-enabled/default < "${WORKSOURCE}/nginx/site.conf"
+#cat /etc/nginx/sites-enabled/default
+
 # ROOT/var/run/swarms/uvicorn-swarms-api.sock;
 #    access_log ROOT/var/log/nginx/swarms/access.log;
 #    error_log ROOT/var/log/nginx/swarms/error.log;
 #echo cat "${WORKSOURCE}/systemd/uvicorn.service" \| sed -e "s!ROOT!/${ROOT}/!g"
-cat "${WORKSOURCE}/systemd/uvicorn.service" | sed -e "s!ROOT!${ROOT}!g" > /etc/systemd/system/swarms-uvicorn.service
-
+sed -e "s!ROOT!${ROOT}!g" > /etc/systemd/system/swarms-uvicorn.service < "${WORKSOURCE}/systemd/uvicorn.service"
 
 # if [ -f ${ROOT}/etc/systemd/system/swarms-uvicorn.service ];
 # then
