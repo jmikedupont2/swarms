@@ -64,15 +64,15 @@ logger.add(sys.stdout,
            format="{time} {level} {message}",
            )
 # Configure Loguru
-logger.add(
-    "logs/api.log",
-    rotation="500 MB",
-    retention="10 days",
-    level="TRACE",
-    format="{time} {level} {message}",
-    backtrace=True,
-    diagnose=True,
-)
+# logger.add(
+#     "logs/api.log",
+#     rotation="500 MB",
+#     retention="10 days",
+#     level="TRACE",
+#     format="{time} {level} {message}",
+#     backtrace=True,
+#     diagnose=True,
+# )
 
 
 class AgentStatus(str, Enum):
@@ -216,8 +216,8 @@ class AgentStore:
 
     def _ensure_directories(self):
         """Ensure required directories exist."""
-        Path("logs").mkdir(exist_ok=True)
-        Path("states").mkdir(exist_ok=True)
+        #Path("logs").mkdir(exist_ok=True)
+        #Path("states").mkdir(exist_ok=True)
 
     async def create_agent(self, config: AgentConfig) -> UUID:
         """Create a new agent with the given configuration."""
