@@ -137,5 +137,5 @@ systemctl start swarms-uvicorn || journalctl -xeu swarms-uvicorn.service
 systemctl enable swarms-uvicorn || journalctl -xeu swarms-uvicorn.service
 service nginx restart
 
-journalctl -xeu swarms-uvicorn.service || echo oops
+journalctl -xeu swarms-uvicorn.service | tail -200 || echo oops
 systemctl status swarms-uvicorn.service || echo oops2
