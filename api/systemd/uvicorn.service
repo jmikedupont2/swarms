@@ -9,7 +9,10 @@ User=swarms
 Group=swarms
 DynamicUser=true
 WorkingDirectory=ROOT/opt/swarms/api/
+ReadWritePaths=ROOT/opt/swarms/api/agent_workspace/
+StateDirectory=swarms_state
 PrivateTmp=true
+ProtectHome=true
 EnvironmentFile=ROOT/var/run/swarms/secrets/env
 
 # for debugging use
@@ -24,7 +27,7 @@ ExecStart=/usr/bin/unbuffer ROOT/var/swarms/agent_workspace/.venv/bin/uvicorn \
         --port=54747 \
 	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
         main:create_app
-	
+
 ExecReload=/bin/kill -HUP ${MAINPID}
 RestartSec=10
 Restart=always

@@ -79,9 +79,12 @@ if [ ! -f "${ROOT}/opt/swarms/install/config.txt" ]; then
     mkdir -p "${ROOT}/var/run/swarms/secrets/"
     mkdir -p "${ROOT}/home/swarms/.cache/huggingface/hub"
     echo "OPENAI_KEY=${OPENAI_KEY}" > "${ROOT}/var/run/swarms/secrets/env"
+    
     ## append new homedir
     echo "TRANSFORMERS_CACHE=${ROOT}/home/swarms/.cache/huggingface/hub" >> "${ROOT}/var/run/swarms/secrets/env"
     echo "HOME=${ROOT}/home/swarms" >> "${ROOT}/var/run/swarms/secrets/env"
+    # attempt to move the workspace
+    echo 'WORKSPACE_DIR=${STATE_DIRECTORY}' >> "${ROOT}/var/run/swarms/secrets/env"
     #EnvironmentFile=ROOT/var/run/swarms/secrets/env
     #ExecStart=ROOT/var/run/uvicorn/env/bin/uvicorn \
 	#	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
