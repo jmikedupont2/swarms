@@ -1,6 +1,8 @@
+import os
+import time
+
 import requests
 from loguru import logger
-import time
 
 # Configure loguru
 logger.add(
@@ -10,7 +12,7 @@ logger.add(
     format="{time} {level} {message}",
 )
 
-BASE_URL = "http://localhost:8000/v1"
+BASE_URL = os.getenv("SWARMS_URL","http://localhost:8000/v1")
 
 
 def test_create_agent():
@@ -25,7 +27,9 @@ def test_create_agent():
         "tags": ["test"],
     }
 
+    logger.debug(f"post {BASE_URL}/agent")
     response = requests.post(f"{BASE_URL}/agent", json=payload)
+
     logger.debug(f"Create response: {response.json()}")
 
     if response.status_code == 200:

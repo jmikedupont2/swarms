@@ -1,40 +1,78 @@
 import os
-from fastapi import (
-    FastAPI,
-    HTTPException,
-    status,
-    Query,
-    BackgroundTasks,
-)
-from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List
-from loguru import logger
-import uvicorn
+import sys
+import traceback
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
-from uuid import UUID, uuid4
 from enum import Enum
 from pathlib import Path
-from concurrent.futures import ThreadPoolExecutor
-import traceback
+from typing import Any, Dict, List, Optional
+from uuid import UUID, uuid4
 
-from swarms import Agent
+import hunter
+import uvicorn
 from dotenv import load_dotenv
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, status
+from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
+from pydantic import BaseModel, Field
+from swarms import Agent
 
-print ("starting")
+seen = {}
+kind = {}
+def foo(x):
+    #<Event kind='call'
+    #function='<module>'
+    #module='ray.experimental.channel'
+    #filename='/mnt/data1/nix/time/2024/05/31/swarms/api/.venv/lib/python3.10/site-packages/ray/experimental/channel/__init__.py'
+    #lineno=1>
+    m = x.module
+    k = x.kind
+
+    if k not in kind:
+        print("KIND",x)
+        kind[k]=1
+    if "swarms" in m:        
+        #hunter.CallPrinter(x)
+        print(x)
+    elif "uvicorn" in m:        
+        #hunter.CallPrinter(x)
+        #print(x)
+        pass
+
+        
+    if m not in seen:
+
+        print("MOD",m)
+        seen[m]=1
+    else:
+        seen[m]=seen[m]+11
+
+hunter.trace(
+    stdlib=False,
+    action=foo
+)
+
+#print("starting")
 # Load environment variables
 load_dotenv()
 
+logger.add(sys.stdout,
+           colorize=True,
+           level="TRACE",
+           backtrace=True,
+           diagnose=True,
+           format="{time} {level} {message}",
+           )
 # Configure Loguru
-logger.add(
-    "logs/api_{time}.log",
-    rotation="500 MB",
-    retention="10 days",
-    level="INFO",
-    format="{time} {level} {message}",
-    backtrace=True,
-    diagnose=True,
-)
+# logger.add(
+#     "logs/api.log",
+#     rotation="500 MB",
+#     retention="10 days",
+#     level="TRACE",
+#     format="{time} {level} {message}",
+#     backtrace=True,
+#     diagnose=True,
+# )
 
 
 class AgentStatus(str, Enum):
@@ -175,11 +213,12 @@ class AgentStore:
         self.agent_metadata: Dict[UUID, Dict[str, Any]] = {}
         self.executor = ThreadPoolExecutor(max_workers=4)
         self._ensure_directories()
-
+        logger.info(f"Created agent store: {self}")
+            
     def _ensure_directories(self):
         """Ensure required directories exist."""
-        Path("logs").mkdir(exist_ok=True)
-        Path("states").mkdir(exist_ok=True)
+        #Path("logs").mkdir(exist_ok=True)
+        #Path("states").mkdir(exist_ok=True)
 
     async def create_agent(self, config: AgentConfig) -> UUID:
         """Create a new agent with the given configuration."""
@@ -221,6 +260,8 @@ class AgentStore:
             }
 
             logger.info(f"Created agent with ID: {agent_id}")
+            logger.debug(f"Created agents:{self.agents.keys()}")
+            logger.info(f"agent store: {self}")
             return agent_id
 
         except Exception as e:
@@ -232,6 +273,9 @@ class AgentStore:
 
     async def get_agent(self, agent_id: UUID) -> Agent:
         """Retrieve an agent by ID."""
+        logger.info(f"agent store: {self}")
+        logger.info(f"Agent found: {agent_id}")
+        logger.debug(f"current agents:{self.agents.keys()}")
         agent = self.agents.get(agent_id)
         if not agent:
             logger.error(f"Agent not found: {agent_id}")
@@ -619,20 +663,21 @@ def create_app() -> FastAPI:
     return api.app
 
 
-#if __name__ == "__main__":
+# if __name__ == "__main__":
 if __name__ == '__main__':
-    #freeze_support()
+    # freeze_support()
     print("yes in main")
     # Configure uvicorn logging
     logger.info("API Starting")
-    
+
     uvicorn.run(
         "main:create_app",
         host="0.0.0.0",
         port=8000,
-     #   reload=True,
-     #   workers=4,
+        log_level="TRACE",
+        workers=1,
+        # reload=True,
     )
 else:
     print("not in main")
-    
+    pass
