@@ -3,7 +3,7 @@
 . ./.env # for secrets
 set -e # stop  on any error
 set -x
-
+export BRANCH="feature/telemetry"
 export ROOT="/mnt/data1/swarms"
 export WORKSOURCE="${ROOT}/opt/swarms/api"
 
@@ -30,11 +30,9 @@ if [ ! -f "${ROOT}/opt/swarms/install/setup.txt" ]; then
     cd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
     git remote add local /time/2024/05/swarms/ || git remote set-url local /time/2024/05/swarms/ 
     git fetch local 
-#    git checkout feature/ec2 # switch branches
-    #    git pull local feature/ec2
     git stash
-    git checkout --force  feature/telemetry # switch branches
-    git pull local feature/telemetry
+    git checkout --force  $BRANCH
+    git pull local $BRANCH
 
     if [ ! -d "${ROOT}/opt/swarms-memory/" ];
     then
@@ -70,9 +68,10 @@ fi
 if [ ! -f "${ROOT}/opt/swarms/install/pull.txt" ]; then
     cd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
     git fetch local 
-    git checkout feature/ec2 # switch branches
-    git pull local feature/ec2
-    #echo 1 >"${ROOT}/opt/swarms/install/pull.txt"
+    git stash
+    git checkout --force  $BRANCH
+    git pull local $BRANCH
+    echo 1 >"${ROOT}/opt/swarms/install/pull.txt"
 fi
 
 
