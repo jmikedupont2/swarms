@@ -31,8 +31,9 @@ if [ ! -f "${ROOT}/opt/swarms/install/setup.txt" ]; then
     git remote add local /time/2024/05/swarms/ || git remote set-url local /time/2024/05/swarms/ 
     git fetch local 
 #    git checkout feature/ec2 # switch branches
-#    git pull local feature/ec2
-    git checkout feature/telemetry # switch branches
+    #    git pull local feature/ec2
+    git stash
+    git checkout --force  feature/telemetry # switch branches
     git pull local feature/telemetry
 
     if [ ! -d "${ROOT}/opt/swarms-memory/" ];
@@ -111,8 +112,10 @@ sed -e "s!ROOT!${ROOT}!g" > /etc/nginx/sites-enabled/default < "${WORKSOURCE}/ng
 #    access_log ROOT/var/log/nginx/swarms/access.log;
 #    error_log ROOT/var/log/nginx/swarms/error.log;
 #echo cat "${WORKSOURCE}/systemd/uvicorn.service" \| sed -e "s!ROOT!/${ROOT}/!g"
+cat "${WORKSOURCE}/systemd/uvicorn.service"
 sed -e "s!ROOT!${ROOT}!g" > /etc/systemd/system/swarms-uvicorn.service < "${WORKSOURCE}/systemd/uvicorn.service"
-
+cat /etc/systemd/system/swarms-uvicorn.service
+			    
 # if [ -f ${ROOT}/etc/systemd/system/swarms-uvicorn.service ];
 # then
 #     cp ${ROOT}/etc/systemd/system/swarms-uvicorn.service /etc/systemd/system/swarms-uvicorn.service
