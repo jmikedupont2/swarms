@@ -31,9 +31,14 @@ def foo(x):
     if k not in kind:
         print("KIND",x)
         kind[k]=1
-
     if "swarms" in m:        
-        hunter.CallPrinter(x)
+        #hunter.CallPrinter(x)
+        print(x)
+    elif "uvicorn" in m:        
+        #hunter.CallPrinter(x)
+        #print(x)
+        pass
+
         
     if m not in seen:
 
@@ -647,7 +652,7 @@ class SwarmsAPI:
 
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
-    #print("create app")
+    print("create app")
     api = SwarmsAPI()
     return api.app
 
@@ -655,7 +660,7 @@ def create_app() -> FastAPI:
 # if __name__ == "__main__":
 if __name__ == '__main__':
     # freeze_support()
-    #print("yes in main")
+    print("yes in main")
     # Configure uvicorn logging
     logger.info("API Starting")
 
@@ -668,5 +673,5 @@ if __name__ == '__main__':
         # reload=True,
     )
 else:
-    #print("not in main")
+    print("not in main")
     pass
