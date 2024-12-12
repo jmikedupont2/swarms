@@ -11,7 +11,8 @@ if [ ! -d "${ROOT}/opt/swarms/install/" ]; then
     mkdir -p "${ROOT}/opt/swarms/install"
 fi
 
-if [ ! -f "${ROOT}/opt/swarms/install/apt.txt" ]; then
+#if [ ! -f "${ROOT}/opt/swarms/install/apt.txt" && APT ]; then
+if [ 0 ]; then
     sudo apt update
     sudo apt install --allow-change-held-packages -y git virtualenv
     echo 1 >"${ROOT}/opt/swarms/install/apt.txt"
