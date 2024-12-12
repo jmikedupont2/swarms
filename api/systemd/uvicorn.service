@@ -22,7 +22,7 @@ ExecStart=ROOT/var/run/uvicorn/env/bin/uvicorn \
         --port=54748 \
         --no-access-log \
 	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
-        _.asgi:application
+        main:create_app
 ExecReload=/bin/kill -HUP ${MAINPID}
 RestartSec=1
 Restart=always

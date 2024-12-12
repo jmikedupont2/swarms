@@ -30,8 +30,10 @@ if [ ! -f "${ROOT}/opt/swarms/install/setup.txt" ]; then
     pushd "${ROOT}/opt/swarms/" || exit 1 # "we need swarms"
     git remote add local /time/2024/05/swarms/ || git remote set-url local /time/2024/05/swarms/ 
     git fetch local 
-    git checkout feature/ec2 # switch branches
-    git pull local feature/ec2
+#    git checkout feature/ec2 # switch branches
+#    git pull local feature/ec2
+    git checkout feature/telemetry # switch branches
+    git pull local feature/telemetry
     popd || exit 2    
     if [ ! -d "${ROOT}/opt/swarms-memory/" ];
     then
