@@ -20,12 +20,13 @@ EnvironmentFile=ROOT/var/run/swarms/secrets/env
 ExecStart=/usr/bin/unbuffer ROOT/var/swarms/agent_workspace/.venv/bin/uvicorn \
         --proxy-headers \
         --forwarded-allow-ips='*' \
-        --workers=4 \
-        --port=54748 \
+        --workers=1 \
+        --port=54747 \
 	--uds ROOT/run/uvicorn/uvicorn-swarms-api.sock \
-        main:create_app
+        main:create_app | tee > /tmp/test123
+	
 ExecReload=/bin/kill -HUP ${MAINPID}
-RestartSec=1
+RestartSec=10
 Restart=always
 
 [Install]
