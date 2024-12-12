@@ -27,6 +27,6 @@ pip install "loguru"
 pip install "hunter" # for tracing
 pip install  pydantic==2.8.2
 
-# pip freeze
+pip freeze
 # launch as systemd
 # python /opt/swarms/api/main.py
