@@ -32,30 +32,31 @@ kind = {}
 
 
 def process_hunter_event(x):
+    "Callback for trace events"
     # <Event kind='call'
     # function='<module>'
     # module='ray.experimental.channel'
-    # filename='/mnt/data1/nix/time/2024/05/31/swarms/api/.venv/lib/python3.10/site-packages/ray/experimental/channel/__init__.py'
-    # lineno=1>
-    m = x.module
-    k = x.kind
 
-    if k not in kind:
+    # lineno=1>
+    mod = x.module
+    kind = x.kind
+
+    if kind not in kind:
         print("KIND", x)
-        kind[k] = 1
-    if "swarms" in m:
+        kind[kind] = 1
+    if "swarms" in mod:
         # hunter.CallPrinter(x)
         print(x)
-    elif "uvicorn" in m:
+    elif "uvicorn" in mod:
         # hunter.CallPrinter(x)
         # print(x)
         pass
 
-    if m not in seen:
-        print("MOD", m)
-        seen[m] = 1
+    if mod not in seen:
+        print("MOD", mod)
+        seen[mod] = 1
     else:
-        seen[m] = seen[m]+11
+        seen[mod] = seen[mod]+11
 
 
 hunter.trace(
@@ -242,12 +243,17 @@ class AgentStore:
         # Path("logs").mkdir(exist_ok=True)
         # Path("states").mkdir(exist_ok=True)
 
+    def create_api_key(self, user_id: UUID, key_name: str) -> APIKey:
+        """Create a new API key for a user."""
+        if user_id not in self.users:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found")
+
         # Generate a secure random API key
         api_key = secrets.token_urlsafe(API_KEY_LENGTH)
 
         # Create the API key object
-        key_name = "fixme"
-        user_id = "fixme"
         key_object = APIKey(
             key=api_key,
             name=key_name,
@@ -284,10 +290,11 @@ class AgentStore:
         key_object.last_used = datetime.utcnow()
         return user_id
 
-    async def create_agent(self, config: AgentConfig, _user_id: UUID) -> UUID:
+    async def create_agent(self, config: AgentConfig, user_id: UUID) -> UUID:
         """Create a new agent with the given configuration."""
+        states_time = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        states_json = f"states/{config.agent_name}_{states_time}.json"
         try:
-
             agent = Agent(
                 agent_name=config.agent_name,
                 system_prompt=config.system_prompt,
@@ -297,7 +304,7 @@ class AgentStore:
                 dashboard=config.dashboard,
                 verbose=config.verbose,
                 dynamic_temperature_enabled=config.dynamic_temperature_enabled,
-                saved_state_path=f"states/{config.agent_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                saved_state_path=states_json,
                 user_name=config.user_name,
                 retry_attempts=config.retry_attempts,
                 context_length=config.context_length,
@@ -322,6 +329,11 @@ class AgentStore:
                 "downtime": timedelta(),
                 "successful_completions": 0,
             }
+
+            # Add to user's agents list
+            if user_id not in self.user_agents:
+                self.user_agents[user_id] = []
+            self.user_agents[user_id].append(agent_id)
 
             logger.info(f"Created agent with ID: {agent_id}")
             logger.debug(f"Created agents:{self.agents.keys()}")
@@ -563,8 +575,9 @@ class AgentStore:
         except Exception as e:
             metadata["error_count"] += 1
             metadata["status"] = AgentStatus.ERROR
+            err= traceback.format_exc()
             logger.error(
-                f"Error in completion processing: {str(e)}\n{traceback.format_exc()}"
+                f"Error in completion processing: {str(e)}\n{err}"
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -583,10 +596,12 @@ class StoreManager:
             cls._instance = AgentStore()
         return cls._instance
 
+
 # Modify the dependency function
 def get_store() -> AgentStore:
     """Dependency to get the AgentStore instance."""
     return StoreManager.get_instance()
+
 
 # Security utility function using the new dependency
 async def get_current_user(
