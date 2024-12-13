@@ -1,18 +1,27 @@
 import os
 import secrets
-import sys
+# import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from enum import Enum
-from pathlib import Path
+# from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
 import hunter
 import uvicorn
 from dotenv import load_dotenv
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, status
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel, Field
@@ -20,40 +29,41 @@ from swarms import Agent
 
 seen = {}
 kind = {}
-def foo(x):
-    #<Event kind='call'
-    #function='<module>'
-    #module='ray.experimental.channel'
-    #filename='/mnt/data1/nix/time/2024/05/31/swarms/api/.venv/lib/python3.10/site-packages/ray/experimental/channel/__init__.py'
-    #lineno=1>
+
+
+def process_hunter_event(x):
+    # <Event kind='call'
+    # function='<module>'
+    # module='ray.experimental.channel'
+    # filename='/mnt/data1/nix/time/2024/05/31/swarms/api/.venv/lib/python3.10/site-packages/ray/experimental/channel/__init__.py'
+    # lineno=1>
     m = x.module
     k = x.kind
 
     if k not in kind:
-        print("KIND",x)
-        kind[k]=1
-    if "swarms" in m:        
-        #hunter.CallPrinter(x)
+        print("KIND", x)
+        kind[k] = 1
+    if "swarms" in m:
+        # hunter.CallPrinter(x)
         print(x)
-    elif "uvicorn" in m:        
-        #hunter.CallPrinter(x)
-        #print(x)
+    elif "uvicorn" in m:
+        # hunter.CallPrinter(x)
+        # print(x)
         pass
 
-        
     if m not in seen:
-
-        print("MOD",m)
-        seen[m]=1
+        print("MOD", m)
+        seen[m] = 1
     else:
-        seen[m]=seen[m]+11
+        seen[m] = seen[m]+11
+
 
 hunter.trace(
     stdlib=False,
-    action=foo
+    action=process_hunter_event
 )
 
-#print("starting")
+# print("starting")
 # Load environment variables
 load_dotenv()
 
@@ -65,10 +75,11 @@ class AgentStatus(str, Enum):
     PROCESSING = "processing"
     ERROR = "error"
     MAINTENANCE = "maintenance"
-    
-    
+
+
 # Security configurations
 API_KEY_LENGTH = 32  # Length of generated API keys
+
 
 class APIKey(BaseModel):
     key: str
@@ -77,16 +88,19 @@ class APIKey(BaseModel):
     last_used: datetime
     is_active: bool = True
 
+
 class APIKeyCreate(BaseModel):
+    "Fixme"
     name: str  # A friendly name for the API key
 
+
 class User(BaseModel):
+    "User "
     id: UUID
     username: str
     is_active: bool = True
     is_admin: bool = False
     api_keys: Dict[str, APIKey] = {}  # key -> APIKey object
-
 
 
 class AgentConfig(BaseModel):
@@ -146,7 +160,6 @@ class AgentConfig(BaseModel):
         default_factory=list,
         description="Tags for categorizing the agent",
     )
-
 
 
 class AgentUpdate(BaseModel):
@@ -223,29 +236,31 @@ class AgentStore:
         self.executor = ThreadPoolExecutor(max_workers=4)
         self._ensure_directories()
         logger.info(f"Created agent store: {self}")
-            
+
     def _ensure_directories(self):
         """Ensure required directories exist."""
-        #Path("logs").mkdir(exist_ok=True)
-        #Path("states").mkdir(exist_ok=True)
+        # Path("logs").mkdir(exist_ok=True)
+        # Path("states").mkdir(exist_ok=True)
 
         # Generate a secure random API key
         api_key = secrets.token_urlsafe(API_KEY_LENGTH)
-        
+
         # Create the API key object
+        key_name = "fixme"
+        user_id = "fixme"
         key_object = APIKey(
             key=api_key,
             name=key_name,
             created_at=datetime.utcnow(),
             last_used=datetime.utcnow()
         )
-        
+
         # Store the API key
         self.users[user_id].api_keys[api_key] = key_object
         self.api_keys[api_key] = user_id
-        
+
         return key_object
-    
+
     async def verify_agent_access(self, agent_id: UUID, user_id: UUID) -> bool:
         """Verify if a user has access to an agent."""
         if agent_id not in self.agents:
@@ -254,22 +269,22 @@ class AgentStore:
             self.agent_metadata[agent_id]["owner_id"] == user_id
             or self.users[user_id].is_admin
         )
-    
+
     def validate_api_key(self, api_key: str) -> Optional[UUID]:
         """Validate an API key and return the associated user ID."""
         user_id = self.api_keys.get(api_key)
         if not user_id or api_key not in self.users[user_id].api_keys:
             return None
-            
+
         key_object = self.users[user_id].api_keys[api_key]
         if not key_object.is_active:
             return None
-            
+
         # Update last used timestamp
         key_object.last_used = datetime.utcnow()
         return user_id
 
-    async def create_agent(self, config: AgentConfig, user_id: UUID) -> UUID:
+    async def create_agent(self, config: AgentConfig, _user_id: UUID) -> UUID:
         """Create a new agent with the given configuration."""
         try:
 
@@ -313,11 +328,11 @@ class AgentStore:
             logger.info(f"agent store: {self}")
             return agent_id
 
-        except Exception as e:
-            logger.error(f"Error creating agent: {str(e)}")
+        except Exception as exp:
+            logger.error(f"Error creating agent: {str(exp)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to create agent: {str(e)}",
+                detail=f"Failed to create agent: {str(exp)}",
             )
 
     async def get_agent(self, agent_id: UUID) -> Agent:
@@ -558,6 +573,7 @@ class AgentStore:
         finally:
             metadata["status"] = AgentStatus.IDLE
 
+
 class StoreManager:
     _instance = None
 
@@ -601,7 +617,7 @@ class SwarmsAPI:
         )
         # Initialize the store using the singleton manager
         self.store = StoreManager.get_instance()
-        
+
         # Configure CORS
         self.app.add_middleware(
             CORSMiddleware,
@@ -617,7 +633,7 @@ class SwarmsAPI:
 
     def _setup_routes(self):
         """Set up API routes."""
-        
+
         # In your API code
         @self.app.post("/v1/users", response_model=Dict[str, Any])
         async def create_user(request: Request):
@@ -627,7 +643,7 @@ class SwarmsAPI:
                 username = body.get("username")
                 if not username or len(username) < 3:
                     raise HTTPException(status_code=400, detail="Invalid username")
-                
+
                 user_id = uuid4()
                 user = User(id=user_id, username=username)
                 self.store.users[user_id] = user
@@ -636,8 +652,8 @@ class SwarmsAPI:
             except Exception as e:
                 logger.error(f"Error creating user: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
-    
-    
+
+
 
         @self.app.post("/v1/users/{user_id}/api-keys", response_model=APIKey)
         async def create_api_key(
@@ -651,7 +667,7 @@ class SwarmsAPI:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Not authorized to create API keys for this user"
                 )
-            
+
             return self.store.create_api_key(user_id, key_create.name)
 
         @self.app.get("/v1/users/{user_id}/api-keys", response_model=List[APIKey])
@@ -665,7 +681,7 @@ class SwarmsAPI:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Not authorized to view API keys for this user"
                 )
-            
+
             return list(self.store.users[user_id].api_keys.values())
 
         @self.app.delete("/v1/users/{user_id}/api-keys/{key}")
@@ -680,12 +696,12 @@ class SwarmsAPI:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Not authorized to revoke API keys for this user"
                 )
-            
+
             if key in self.store.users[user_id].api_keys:
                 self.store.users[user_id].api_keys[key].is_active = False
                 del self.store.api_keys[key]
                 return {"status": "API key revoked"}
-            
+
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="API key not found"
