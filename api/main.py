@@ -974,7 +974,7 @@ def run_server():
         asyncio.run(server.startup())
     except Exception as e:
         logger.error(f"Failed to start API: {str(e)}")
-        print(f"Error starting server: {str(e)}"
+        print(f"Error starting server: {str(e)}")
 
 
 if __name__ == "__main__":
