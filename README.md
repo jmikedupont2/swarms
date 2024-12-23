@@ -47,6 +47,8 @@
 
 ## ✨ Features
 
+To verify the features listed below, refer to the examples and tests provided in the documentation and examples directory.
+
 | Category | Features | Benefits |
 |----------|----------|-----------|
 | 🏢 Enterprise Architecture | • Production-Ready Infrastructure<br>• High Reliability Systems<br>• Modular Design<br>• Comprehensive Logging | • Reduced downtime<br>• Easier maintenance<br>• Better debugging<br>• Enhanced monitoring |
@@ -89,6 +91,8 @@ Refer to our documentation for production grade implementation details.
 
 
 ## Install 💻
+
+To verify the installation, follow the steps below and run the provided example scripts to ensure everything is set up correctly.
 Install the following packages with copy and paste
 
 ```bash
@@ -115,6 +119,8 @@ For more documentation on the CLI [CLICK HERE](https://docs.swarms.world/en/late
 ---
 
 # Usage Examples 🤖
+
+To verify the usage examples, run the scripts provided in the examples directory and compare the outputs with the expected results.
 Here are some example scripts to get you started. For more comprehensive documentation, visit our [docs](https://docs.swarms.world/en/latest/).
 
 | Example Name | Description | Type of Examples | Link |
