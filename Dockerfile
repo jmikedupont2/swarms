@@ -2,20 +2,30 @@
 FROM python:3.11-slim
 
 # Set environment variables
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+#ENV PYTHONDONTWRITEBYTECODE 1
+#ENV PYTHONUNBUFFERED 1
 
 # Set the working directory in the container
-WORKDIR /usr/src/swarms/api
+WORKDIR /opt/swarms/
 
+RUN apt update
+RUN apt install -y git
 # Install Python dependencies
 # COPY requirements.txt and pyproject.toml if you're using poetry for dependency management
 COPY requirements.txt .
 #RUN pip install --upgrade pip
-RUN pip install --no-cache-dir -r requirements.txt
+RUN mkdir -p /var/swarms/agent_workspace/
 
-# Install the 'swarms' package, assuming it's available on PyPI
-#RUN pip install -U swarms
+
+RUN adduser --disabled-password --gecos "" swarms --home "/home/swarms"
+RUN chown  -R swarms:swarms /var/swarms/agent_workspace
+USER swarms
+
+RUN python3 -m venv /var/swarms/agent_workspace/.venv/
+RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install -r /opt/swarms/requirements.txt
+
+
+RUN git config --global --add safe.directory "/opt/swarms"
 
 # Copy the rest of the application
 #COPY . .
