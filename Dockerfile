@@ -10,6 +10,11 @@ WORKDIR /opt/swarms/
 
 RUN apt update
 RUN apt install -y git
+RUN    apt install --allow-change-held-packages -y python3-virtualenv
+#    nginx
+RUN    apt install --allow-change-held-packages -y expect
+RUN    apt install --allow-change-held-packages -y jq netcat-traditional # missing packages
+
 # Install Python dependencies
 # COPY requirements.txt and pyproject.toml if you're using poetry for dependency management
 COPY requirements.txt .
@@ -23,12 +28,10 @@ USER swarms
 
 RUN python3 -m venv /var/swarms/agent_workspace/.venv/
 RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install -r /opt/swarms/requirements.txt
-
-
 RUN git config --global --add safe.directory "/opt/swarms"
-
+RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install uvicorn fastapi
 # Copy the rest of the application
-#COPY . .
+
 
 # Expose port if your application has a web interface
 # EXPOSE 5000
@@ -37,4 +40,12 @@ RUN git config --global --add safe.directory "/opt/swarms"
 # ENV OPENAI_API_KEY=your_swarm_api_key_here
 
 # If you're using `CMD` to execute a Python script, make sure it's executable
-RUN fastapi api:main
+# --access-log
+#  --log-config
+# --env-file
+#   --log-level [critical|error|warning|info|debug|trace]
+
+COPY swarms /opt/swarms/swarms
+COPY api/main.py /opt/swarms/api/main.py
+
+CMD ["/usr/bin/unbuffer", "/var/swarms/agent_workspace/.venv/bin/uvicorn", "--proxy-headers", "--forwarded-allow-ips='*'", "--workers=4", "--port=8000",    "--reload-delay=30",    "/opt/swarms/api/main:create_app"]
