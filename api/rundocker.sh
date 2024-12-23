@@ -1,5 +1,12 @@
 #!/bin/bash
-# review and improve
+
+# this is the install script 
+#  install_script = "/opt/swarms/api/rundocker.sh"
+# called on boot.
+
+# this is the refresh script called from ssm for a refresh
+#  #refresh_script = "/opt/swarms/api/docker-boot.sh" 
+
 . ./.env # for secrets
 set -e # stop  on any error
 export ROOT="" # empty
