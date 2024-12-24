@@ -1,3 +1,4 @@
+#!/bin/bash
 # run swarms via docker via systemd
 # this script is called from ssm 
 # pull the new version via systemd
@@ -8,7 +9,9 @@ mkdir -p "/var/run/swarms/secrets/"
 mkdir -p "/home/swarms/.cache/huggingface/hub"
 
 if ! grep -q "^OPENAI_KEY" "/var/run/swarms/secrets/env"; then
-    export OPENAI_KEY=`aws ssm get-parameter     --name "swarms_openai_key" | jq .Parameter.Value -r `
+    
+    OPENAI_KEY=$(aws ssm get-parameter     --name "swarms_openai_key" | jq .Parameter.Value -r )
+    export OPENAI_KEY
     echo "OPENAI_KEY=${OPENAI_KEY}" > "/var/run/swarms/secrets/env"
 fi   
 
