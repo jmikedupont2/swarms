@@ -40,8 +40,16 @@ export OPENAI_KEY=`aws ssm get-parameter     --name "swarms_openai_key" | jq .Pa
 echo "OPENAI_KEY=${OPENAI_KEY}" > "${ROOT}/var/run/swarms/secrets/env"
 
 ## append new homedir
-echo "HF_HOME=${ROOT}/home/swarms/.cache/huggingface/hub" >> "${ROOT}/var/run/swarms/secrets/env"
-echo "HOME=${ROOT}/home/swarms" >> "${ROOT}/var/run/swarms/secrets/env"
+check if the entry exists already before appending pls
+if ! grep -q "HF_HOME" ${ROOT}/var/run/swarms/secrets/env"; then
+       echo "HF_HOME=${ROOT}/home/swarms/.cache/huggingface/hub" >> "${ROOT}/var/run/swarms/secrets/env"
+fi
+
+if ! grep -q "^HOME" ${ROOT}/var/run/swarms/secrets/env"; then
+    echo "HOME=${ROOT}/home/swarms" >> "${ROOT}/var/run/swarms/secrets/env"
+fi
+
+if ! grep -q "^HOME" ${ROOT}/var/run/swarms/secrets/env"; then
 # attempt to move the workspace
 echo 'WORKSPACE_DIR=${STATE_DIRECTORY}' >> "${ROOT}/var/run/swarms/secrets/env"
 
