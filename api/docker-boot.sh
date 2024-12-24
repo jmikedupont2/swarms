@@ -8,6 +8,9 @@ sed -e "s!ROOT!${ROOT}!g" > /etc/nginx/sites-enabled/default < "${WORKSOURCE}/ng
 
 systemctl daemon-reload
 # start and stop the service pulls the docker image
-systemctl stop swarms-docker || journalctl -xeu swarms-docker
-systemctl start swarms-docker || journalctl -xeu swarms-docker
+#systemctl stop swarms-docker || journalctl -xeu swarms-docker
+#systemctl start swarms-docker || journalctl -xeu swarms-docker
+systemctl restart swarms-docker || journalctl -xeu swarms-docker.service
 systemctl enable swarms-docker || journalctl -xeu swarms-docker
+
+
