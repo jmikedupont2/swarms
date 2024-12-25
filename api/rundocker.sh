@@ -43,12 +43,15 @@ cd "/opt/swarms/" || exit 1 # "we need swarms"
 
 mkdir -p "/var/run/swarms/secrets/"
 mkdir -p "/home/swarms/.cache/huggingface/hub"
+
+set +x
 OPENAI_KEY=$(aws ssm get-parameter     --name "swarms_openai_key" | jq .Parameter.Value -r )
 export OPENAI_KEY
 echo "OPENAI_KEY=${OPENAI_KEY}" > "/var/run/swarms/secrets/env"
+set -x
 
 ## append new homedir
-check if the entry exists already before appending pls
+# check if the entry exists already before appending pls
 if ! grep -q "HF_HOME" "/var/run/swarms/secrets/env"; then
        echo "HF_HOME=/home/swarms/.cache/huggingface/hub" >> "/var/run/swarms/secrets/env"
 fi
