@@ -1,10 +1,3 @@
-"""
-GraphSwarm: A production-grade framework for orchestrating swarms of agents
-Author: Claude
-License: MIT
-Version: 2.0.0
-"""
-
 import asyncio
 import json
 import time
@@ -12,13 +5,13 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-import chromadb
 import networkx as nx
 from loguru import logger
 from pydantic import BaseModel, Field
-
-from swarms import Agent
-
+from swarms.utils.auto_download_check_packages import (
+    auto_check_and_download_package,
+)
+from swarms.structs.agent import Agent
 
 # Configure logging
 logger.add(
@@ -57,6 +50,15 @@ class SwarmMemory:
 
     def __init__(self, collection_name: str = "swarm_memories"):
         """Initialize SwarmMemory with ChromaDB."""
+
+        try:
+            import chromadb
+        except ImportError:
+            auto_check_and_download_package(
+                "chromadb", package_manager="pip", upgrade=True
+            )
+            import chromadb
+
         self.client = chromadb.Client()
 
         # Get or create collection
@@ -610,56 +612,3 @@ class GraphSwarm:
             self.graph.add_edge(dep, agent.agent_name)
 
         self._validate_graph()
-
-
-if __name__ == "__main__":
-    try:
-        # Create agents
-        data_collector = Agent(
-            agent_name="Market-Data-Collector",
-            model_name="gpt-4o-mini",
-            max_loops=1,
-            streaming_on=True,
-        )
-
-        trend_analyzer = Agent(
-            agent_name="Market-Trend-Analyzer",
-            model_name="gpt-4o-mini",
-            max_loops=1,
-            streaming_on=True,
-        )
-
-        report_generator = Agent(
-            agent_name="Investment-Report-Generator",
-            model_name="gpt-4o-mini",
-            max_loops=1,
-            streaming_on=True,
-        )
-
-        # Create swarm
-        swarm = GraphSwarm(
-            agents=[
-                (data_collector, []),
-                (trend_analyzer, ["Market-Data-Collector"]),
-                (report_generator, ["Market-Trend-Analyzer"]),
-            ],
-            swarm_name="Market Analysis Intelligence Network",
-        )
-
-        # Run the swarm
-        result = swarm.run(
-            "Analyze current market trends for tech stocks and provide investment recommendations"
-        )
-
-        # Print results
-        print(f"Execution success: {result.success}")
-        print(f"Total time: {result.execution_time:.2f} seconds")
-
-        for agent_name, output in result.outputs.items():
-            print(f"\nAgent: {agent_name}")
-            print(f"Output: {output.output}")
-            if output.error:
-                print(f"Error: {output.error}")
-    except Exception as error:
-        logger.error(error)
-        raise error
