@@ -1,3 +1,4 @@
+# review
 # Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
@@ -167,7 +168,8 @@ RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install transformers==4.
 RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install pillow==11.0.0
 RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install pypdf==5.1.0
 RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install ray==2.40.0
-#RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install torch==2.5.1
+RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install torch==2.5.1
+RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install together==1.3.10
 
 ###
 RUN /var/swarms/agent_workspace/.venv/bin/python -m pip install git+https://github.com/jmikedupont2/swarm-models@main#egg=swarm-models
