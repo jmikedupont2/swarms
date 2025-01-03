@@ -1,13 +1,15 @@
 import os
 import secrets
+# import sys
 import traceback
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta
 from enum import Enum
-from pathlib import Path
+# from pathlib import Path
 from typing import Any, Dict, List, Optional
 from uuid import UUID, uuid4
 
+import hunter
 import uvicorn
 from dotenv import load_dotenv
 from fastapi import (
@@ -24,8 +26,49 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from swarms import Agent
+from swarms.structs.agent import Agent
 
+
+seen = {}
+kind = {}
+
+
+def process_hunter_event(x):
+    "Callback for trace events"
+    # <Event kind='call'
+    # function='<module>'
+    # module='ray.experimental.channel'
+
+    # lineno=1>
+    mod = x.module
+    kind = x.kind
+
+    if kind not in kind:
+        logger.debug(f"new kind: {kind}")
+        #print("KIND", x)
+        kind[kind] = 1
+    if "swarms" in mod:
+        # hunter.CallPrinter(x)
+        #print(x)
+        logger.debug(f"new swarms event:{kind} value:{x}")
+    elif "uvicorn" in mod:
+        # hunter.CallPrinter(x)
+        # print(x)
+        pass
+
+    if mod not in seen:
+        logger.debug(f"new module: {mod}")
+        seen[mod] = 1
+    else:
+        seen[mod] = seen[mod]+11
+
+
+hunter.trace(
+    stdlib=False,
+    action=process_hunter_event
+)
+
+# print("starting")
 # Load environment variables
 load_dotenv()
 
@@ -37,10 +80,11 @@ class AgentStatus(str, Enum):
     PROCESSING = "processing"
     ERROR = "error"
     MAINTENANCE = "maintenance"
-    
-    
+
+
 # Security configurations
 API_KEY_LENGTH = 32  # Length of generated API keys
+
 
 class APIKey(BaseModel):
     key: str
@@ -49,16 +93,18 @@ class APIKey(BaseModel):
     last_used: datetime
     is_active: bool = True
 
+
 class APIKeyCreate(BaseModel):
     name: str  # A friendly name for the API key
 
+
 class User(BaseModel):
+    "User "
     id: UUID
     username: str
     is_active: bool = True
     is_admin: bool = False
     api_keys: Dict[str, APIKey] = {}  # key -> APIKey object
-
 
 
 class AgentConfig(BaseModel):
@@ -120,14 +166,13 @@ class AgentConfig(BaseModel):
     )
 
 
-
 class AgentUpdate(BaseModel):
     """Model for updating agent configuration."""
 
     description: Optional[str] = None
     system_prompt: Optional[str] = None
-    temperature: Optional[float] = None
-    max_loops: Optional[int] = None
+    temperature: Optional[float] = 0.5
+    max_loops: Optional[int] = 1
     tags: Optional[List[str]] = None
     status: Optional[AgentStatus] = None
 
@@ -166,7 +211,7 @@ class CompletionRequest(BaseModel):
     max_tokens: Optional[int] = Field(
         None, description="Maximum tokens to generate"
     )
-    temperature_override: Optional[float] = None
+    temperature_override: Optional[float] = 0.5
     stream: bool = Field(
         default=False, description="Enable streaming response"
     )
@@ -191,41 +236,46 @@ class AgentStore:
         self.agent_metadata: Dict[UUID, Dict[str, Any]] = {}
         self.users: Dict[UUID, User] = {}  # user_id -> User
         self.api_keys: Dict[str, UUID] = {}  # api_key -> user_id
-        self.user_agents: Dict[UUID, List[UUID]] = {}  # user_id -> [agent_ids]
+        self.user_agents: Dict[UUID, List[UUID]] = (
+            {}
+        )  # user_id -> [agent_ids]
         self.executor = ThreadPoolExecutor(max_workers=4)
         self._ensure_directories()
+        logger.info(f"Created agent store: {self}")
 
     def _ensure_directories(self):
         """Ensure required directories exist."""
-        Path("logs").mkdir(exist_ok=True)
-        Path("states").mkdir(exist_ok=True)
-        
+        # Path("logs").mkdir(exist_ok=True)
+        # Path("states").mkdir(exist_ok=True)
+
     def create_api_key(self, user_id: UUID, key_name: str) -> APIKey:
         """Create a new API key for a user."""
         if user_id not in self.users:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="User not found"
+                detail="User not found",
             )
 
         # Generate a secure random API key
         api_key = secrets.token_urlsafe(API_KEY_LENGTH)
-        
+
         # Create the API key object
         key_object = APIKey(
             key=api_key,
             name=key_name,
             created_at=datetime.utcnow(),
-            last_used=datetime.utcnow()
+            last_used=datetime.utcnow(),
         )
-        
+
         # Store the API key
         self.users[user_id].api_keys[api_key] = key_object
         self.api_keys[api_key] = user_id
-        
+
         return key_object
-    
-    async def verify_agent_access(self, agent_id: UUID, user_id: UUID) -> bool:
+
+    async def verify_agent_access(
+        self, agent_id: UUID, user_id: UUID
+    ) -> bool:
         """Verify if a user has access to an agent."""
         if agent_id not in self.agents:
             return False
@@ -233,25 +283,28 @@ class AgentStore:
             self.agent_metadata[agent_id]["owner_id"] == user_id
             or self.users[user_id].is_admin
         )
-    
+
     def validate_api_key(self, api_key: str) -> Optional[UUID]:
         """Validate an API key and return the associated user ID."""
         user_id = self.api_keys.get(api_key)
         if not user_id or api_key not in self.users[user_id].api_keys:
             return None
-            
+
         key_object = self.users[user_id].api_keys[api_key]
         if not key_object.is_active:
             return None
-            
+
         # Update last used timestamp
         key_object.last_used = datetime.utcnow()
         return user_id
 
-    async def create_agent(self, config: AgentConfig, user_id: UUID) -> UUID:
+    async def create_agent(
+        self, config: AgentConfig, user_id: UUID
+    ) -> UUID:
         """Create a new agent with the given configuration."""
+        states_time = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        states_json = f"states/{config.agent_name}_{states_time}.json"
         try:
-
             agent = Agent(
                 agent_name=config.agent_name,
                 system_prompt=config.system_prompt,
@@ -260,7 +313,7 @@ class AgentStore:
                 autosave=config.autosave,
                 dashboard=config.dashboard,
                 verbose=config.verbose,
-                dynamic_temperature_enabled=config.dynamic_temperature_enabled,
+                dynamic_temperature_enabled=True,
                 saved_state_path=f"states/{config.agent_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
                 user_name=config.user_name,
                 retry_attempts=config.retry_attempts,
@@ -292,17 +345,23 @@ class AgentStore:
                 self.user_agents[user_id] = []
             self.user_agents[user_id].append(agent_id)
 
+            logger.info(f"Created agent with ID: {agent_id}")
+            logger.debug(f"Created agents:{self.agents.keys()}")
+            logger.info(f"agent store: {self}")
             return agent_id
 
-        except Exception as e:
-            logger.error(f"Error creating agent: {str(e)}")
+        except Exception as exp:
+            logger.error(f"Error creating agent: {str(exp)}")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Failed to create agent: {str(e)}",
+                detail=f"Failed to create agent: {str(exp)}",
             )
 
     async def get_agent(self, agent_id: UUID) -> Agent:
         """Retrieve an agent by ID."""
+        logger.info(f"agent store: {self}")
+        logger.info(f"Agent found: {agent_id}")
+        logger.debug(f"current agents:{self.agents.keys()}")
         agent = self.agents.get(agent_id)
         if not agent:
             logger.error(f"Agent not found: {agent_id}")
@@ -321,8 +380,6 @@ class AgentStore:
 
         if update.system_prompt:
             agent.system_prompt = update.system_prompt
-        if update.temperature is not None:
-            agent.llm.temperature = update.temperature
         if update.max_loops is not None:
             agent.max_loops = update.max_loops
         if update.tags is not None:
@@ -427,8 +484,8 @@ class AgentStore:
             agent_name=new_name,
             description=f"Clone of {original_agent.agent_name}",
             system_prompt=original_agent.system_prompt,
-            model_name=original_agent.llm.model_name,
-            temperature=original_agent.llm.temperature,
+            model_name=original_agent.model_name,
+            temperature=0.5,
             max_loops=original_agent.max_loops,
             tags=original_metadata["tags"],
         )
@@ -469,17 +526,8 @@ class AgentStore:
             metadata["status"] = AgentStatus.PROCESSING
             metadata["last_used"] = start_time
 
-            # Apply temporary overrides if specified
-            original_temp = agent.llm.temperature
-            if temperature_override is not None:
-                agent.llm.temperature = temperature_override
-
             # Process the completion
             response = agent.run(prompt)
-
-            # Reset overrides
-            if temperature_override is not None:
-                agent.llm.temperature = original_temp
 
             # Update metrics
             processing_time = (
@@ -511,8 +559,8 @@ class AgentStore:
                 response=response,
                 metadata={
                     "agent_name": agent.agent_name,
-                    "model_name": agent.llm.model_name,
-                    "temperature": agent.llm.temperature,
+                    # "model_name": agent.llm.model_name,
+                    # "temperature": 0.5,
                 },
                 timestamp=datetime.utcnow(),
                 processing_time=processing_time,
@@ -526,8 +574,9 @@ class AgentStore:
         except Exception as e:
             metadata["error_count"] += 1
             metadata["status"] = AgentStatus.ERROR
+            err= traceback.format_exc()
             logger.error(
-                f"Error in completion processing: {str(e)}\n{traceback.format_exc()}"
+                f"Error in completion processing: {str(e)}\n{err}"
             )
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -536,24 +585,29 @@ class AgentStore:
         finally:
             metadata["status"] = AgentStatus.IDLE
 
+
 class StoreManager:
     _instance = None
 
     @classmethod
-    def get_instance(cls) -> 'AgentStore':
+    def get_instance(cls) -> "AgentStore":
         if cls._instance is None:
             cls._instance = AgentStore()
         return cls._instance
+
 
 # Modify the dependency function
 def get_store() -> AgentStore:
     """Dependency to get the AgentStore instance."""
     return StoreManager.get_instance()
 
+
 # Security utility function using the new dependency
 async def get_current_user(
-    api_key: str = Header(..., description="API key for authentication"),
-    store: AgentStore = Depends(get_store)
+    api_key: str = Header(
+        ..., description="API key for authentication"
+    ),
+    store: AgentStore = Depends(get_store),
 ) -> User:
     """Validate API key and return current user."""
     user_id = store.validate_api_key(api_key)
@@ -579,7 +633,7 @@ class SwarmsAPI:
         )
         # Initialize the store using the singleton manager
         self.store = StoreManager.get_instance()
-        
+
         # Configure CORS
         self.app.add_middleware(
             CORSMiddleware,
@@ -595,7 +649,7 @@ class SwarmsAPI:
 
     def _setup_routes(self):
         """Set up API routes."""
-        
+
         # In your API code
         @self.app.post("/v1/users", response_model=Dict[str, Any])
         async def create_user(request: Request):
@@ -604,93 +658,122 @@ class SwarmsAPI:
                 body = await request.json()
                 username = body.get("username")
                 if not username or len(username) < 3:
-                    raise HTTPException(status_code=400, detail="Invalid username")
-                
+                    raise HTTPException(
+                        status_code=400, detail="Invalid username"
+                    )
+
                 user_id = uuid4()
                 user = User(id=user_id, username=username)
                 self.store.users[user_id] = user
-                initial_key = self.store.create_api_key(user_id, "Initial Key")
-                return {"user_id": user_id, "api_key": initial_key.key}
+                initial_key = self.store.create_api_key(
+                    user_id, "Initial Key"
+                )
+                return {
+                    "user_id": user_id,
+                    "api_key": initial_key.key,
+                }
             except Exception as e:
                 logger.error(f"Error creating user: {str(e)}")
                 raise HTTPException(status_code=400, detail=str(e))
-    
-    
 
-        @self.app.post("/v1/users/{user_id}/api-keys", response_model=APIKey)
+        @self.app.post(
+            "/v1/users/{user_id}/api-keys", response_model=APIKey
+        )
         async def create_api_key(
             user_id: UUID,
             key_create: APIKeyCreate,
-            current_user: User = Depends(get_current_user)
+            current_user: User = Depends(get_current_user),
         ):
             """Create a new API key for a user."""
-            if current_user.id != user_id and not current_user.is_admin:
+            if (
+                current_user.id != user_id
+                and not current_user.is_admin
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Not authorized to create API keys for this user"
+                    detail="Not authorized to create API keys for this user",
                 )
-            
+
             return self.store.create_api_key(user_id, key_create.name)
 
-        @self.app.get("/v1/users/{user_id}/api-keys", response_model=List[APIKey])
+        @self.app.get(
+            "/v1/users/{user_id}/api-keys",
+            response_model=List[APIKey],
+        )
         async def list_api_keys(
             user_id: UUID,
-            current_user: User = Depends(get_current_user)
+            current_user: User = Depends(get_current_user),
         ):
             """List all API keys for a user."""
-            if current_user.id != user_id and not current_user.is_admin:
+            if (
+                current_user.id != user_id
+                and not current_user.is_admin
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Not authorized to view API keys for this user"
+                    detail="Not authorized to view API keys for this user",
                 )
-            
+
             return list(self.store.users[user_id].api_keys.values())
 
         @self.app.delete("/v1/users/{user_id}/api-keys/{key}")
         async def revoke_api_key(
             user_id: UUID,
             key: str,
-            current_user: User = Depends(get_current_user)
+            current_user: User = Depends(get_current_user),
         ):
             """Revoke an API key."""
-            if current_user.id != user_id and not current_user.is_admin:
+            if (
+                current_user.id != user_id
+                and not current_user.is_admin
+            ):
                 raise HTTPException(
                     status_code=status.HTTP_403_FORBIDDEN,
-                    detail="Not authorized to revoke API keys for this user"
+                    detail="Not authorized to revoke API keys for this user",
                 )
-            
+
             if key in self.store.users[user_id].api_keys:
-                self.store.users[user_id].api_keys[key].is_active = False
+                self.store.users[user_id].api_keys[
+                    key
+                ].is_active = False
                 del self.store.api_keys[key]
                 return {"status": "API key revoked"}
-            
+
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="API key not found"
+                detail="API key not found",
             )
 
-        @self.app.get("/v1/users/me/agents", response_model=List[AgentSummary])
+        @self.app.get(
+            "/v1/users/me/agents", response_model=List[AgentSummary]
+        )
         async def list_user_agents(
             current_user: User = Depends(get_current_user),
             tags: Optional[List[str]] = Query(None),
             status: Optional[AgentStatus] = None,
         ):
             """List all agents owned by the current user."""
-            user_agents = self.store.user_agents.get(current_user.id, [])
+            user_agents = self.store.user_agents.get(
+                current_user.id, []
+            )
             return [
-                agent for agent in await self.store.list_agents(tags, status)
+                agent
+                for agent in await self.store.list_agents(
+                    tags, status
+                )
                 if agent.agent_id in user_agents
             ]
-
 
         # Modify existing routes to use API key authentication
         @self.app.post("/v1/agent", response_model=Dict[str, UUID])
         async def create_agent(
             config: AgentConfig,
-            current_user: User = Depends(get_current_user)
+            current_user: User = Depends(get_current_user),
         ):
             """Create a new agent with the specified configuration."""
-            agent_id = await self.store.create_agent(config, current_user.id)
+            agent_id = await self.store.create_agent(
+                config, current_user.id
+            )
             return {"agent_id": agent_id}
 
         @self.app.get("/v1/agents", response_model=List[AgentSummary])
@@ -749,7 +832,7 @@ class SwarmsAPI:
                     request.prompt,
                     request.agent_id,
                     request.max_tokens,
-                    request.temperature_override,
+                    0.5,
                 )
 
                 # Schedule background cleanup
@@ -804,6 +887,7 @@ class SwarmsAPI:
                     if k > cutoff
                 }
 
+
 def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     logger.info("Creating FastAPI application")
@@ -815,16 +899,22 @@ def create_app() -> FastAPI:
 app = create_app()
 
 if __name__ == '__main__':
-    try:
-        logger.info("Starting API server...")
-        print("Starting API server on http://0.0.0.0:8000")
-        
-        uvicorn.run(
-            app,  # Pass the app instance directly
-            host="0.0.0.0",
-            port=8000,
-            log_level="info"
-        )
-    except Exception as e:
-        logger.error(f"Failed to start API: {str(e)}")
-        print(f"Error starting server: {str(e)}")
+    # freeze_support()
+    #print("yes in main")
+    logger.debug(f"in main")
+    # Configure uvicorn logging
+    logger.info("API Starting")
+
+    uvicorn.run(
+        "main:create_app",
+        host="0.0.0.0",
+        port=8000,
+        log_level="TRACE",
+        workers=1,
+        # reload=True,
+    )
+else:
+    #print("not in main")
+    logger.debug(f"not in main")
+    pass
+

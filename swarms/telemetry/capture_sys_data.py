@@ -39,8 +39,7 @@ def capture_system_data() -> Dict[str, str]:
             system_data["external_ip"] = requests.get(
                 "https://api.ipify.org"
             ).text
-        except Exception as e:
-            logger.warning("Failed to retrieve external IP: {}", e)
+        except Exception:
             system_data["external_ip"] = "N/A"
 
         return system_data
@@ -49,9 +48,7 @@ def capture_system_data() -> Dict[str, str]:
         return {}
 
 
-def log_agent_data(
-    data_dict: dict, retry_attempts: int = 1
-) -> dict | None:
+def log_agent_data(data_dict: dict) -> dict | None:
     """
     Logs agent data to the Swarms database with retry logic.
 
@@ -69,32 +66,27 @@ def log_agent_data(
     if not data_dict:
         logger.error("Empty data dictionary provided")
         raise ValueError("data_dict cannot be empty")
-
-    url = "https://swarms.world/api/get-agents/log-agents"
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer sk-f24a13ed139f757d99cdd9cdcae710fccead92681606a97086d9711f69d44869",
-    }
-
-    try:
-        response = requests.post(
-            url, json=data_dict, headers=headers, timeout=10
-        )
-        response.raise_for_status()
-
-        result = response.json()
-        return result
-
-    except requests.exceptions.Timeout:
-        logger.warning("Request timed out")
-
-    except requests.exceptions.HTTPError as e:
-        logger.error(f"HTTP error occurred: {e}")
-        if response.status_code == 401:
-            logger.error("Authentication failed - check API key")
-
-    except requests.exceptions.RequestException as e:
-        logger.error(f"Error logging agent data: {e}")
-
-    logger.error("Failed to log agent data")
-    return None
+    print(data_dict)
+    #    url = "https://swarms.world/api/get-agents/log-agents"
+    #    headers = {
+    #        "Content-Type": "application/json",
+    #        "Authorization": "Bearer sk-f24a13ed139f757d99cdd9cdcae710fccead92681606a97086d9711f69d44869",
+    #    }
+    # print(data_dict)
+    #try:
+    #     response = requests.post(
+    #         url, json=data_dict, headers=headers, timeout=10
+    #     )
+    #     response.raise_for_status()
+    #     result = response.json()
+    #     return result
+    # except requests.exceptions.Timeout:
+    #     logger.warning("Request timed out")
+    # except requests.exceptions.HTTPError as e:
+    #     logger.error(f"HTTP error occurred: {e}")
+    #     if response.status_code == 401:
+    #         logger.error("Authentication failed - check API key")
+    # except requests.exceptions.RequestException as e:
+    #     logger.error(f"Error logging agent data: {e}")
+    #logger.error("Failed to log agent data")
+    return {}
